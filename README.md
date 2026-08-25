@@ -369,7 +369,7 @@ The workflow is designed around a simple feedback loop: identify weak concepts, 
 
 - **Live Portfolio:** [Tauhid Topu Portfolio](https://portfolio-frontend-rust-six.vercel.app/)
 - **GitHub Repository:** [FlyRank-AI-Internship](https://github.com/Tauhid-Topu-007/FlyRank-AI-Internship)
-- **Demo Video:** Add the published video URL when available.
+- **Demo Video:** https://www.youtube.com/watch?v=EqBfdor6m1w
 
 ---
 
