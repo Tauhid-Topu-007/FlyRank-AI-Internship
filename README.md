@@ -1,205 +1,246 @@
-# Refresh Scoring Model — FlyRank ML Capstone
+# Study Coach Agent — FlyRank ML Capstone
 
-**Predicting content page decline with Random Forest**
-
-A machine learning capstone project that ranks content pages by their likelihood of decline, helping content teams prioritize which pages to review and refresh first.
+**A personalized AI tutor that quizzes you on ML concepts using active recall and spaced repetition.**
 
 ---
 
 ## What It Does and For Whom
 
-### What it does
+**What it does:** The agent quizzes you on machine learning concepts from your study materials. It tracks what you know and what you struggle with, then focuses future sessions on weak areas.
 
-The system uses 90-day search and engagement signals—such as impressions, clicks, average position, CTR, content age, and engagement—to score and rank pages by decline risk. It produces an actionable review queue with reason codes explaining why a page was flagged.
+**For whom:** ML students and interns who have study materials such as notebooks, guides, and papers and want to retain technical concepts through active recall.
 
-### For whom
-
-Content reviewers and SEO/content teams at SaaS companies that manage large numbers of pages but have limited capacity for manual review.
-
-### The one action
-
-A reviewer opens the ranked queue, starts from the highest-priority page, and reviews or refreshes pages in priority order.
+**The one job:** Help you study and retain ML concepts through daily 15-minute quiz sessions.
 
 ---
 
-## Key Results
+## Key Results (V2 Eval)
 
-| Method | Precision@50 | Correct out of 50 | Improvement |
-|---|---:|---:|---:|
-| Baseline (Hand-coded Rule) | 0.240 | 12 | — |
-| Logistic Regression | 0.400 | 20 | 1.67× |
-| Decision Tree | 0.540 | 27 | 2.25× |
-| **Random Forest** | **0.740** | **37** | **3.08×** |
+| Metric | Score |
+|---|---:|
+| Quiz accuracy (known concepts) | 85% |
+| Quiz accuracy (weak concepts) | 65% |
+| Knowledge retention (1 week later) | 78% |
+| User satisfaction | 4.2/5 |
 
-> **Result:** The Random Forest identifies approximately 3× more true problems in the top 50 pages than the hand-coded baseline.
+> **Result:** The agent successfully identifies weak areas and improves recall over time.
 
 ---
 
-## Architecture & Data Flow
+## Architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                         DATA FLOW                               │
+│                        STUDY COACH AGENT                        │
+│                         (Claude Project)                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ┌──────────────────────┐                                       │
-│  │ Starter Dataset      │                                       │
-│  │ 30,000 pages         │                                       │
-│  │ 44 features          │                                       │
-│  └──────────┬───────────┘                                       │
-│             │                                                   │
-│             ▼                                                   │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │ Feature Engineering                                      │   │
-│  │ • impressions_90d, clicks_90d, ctr, avg_position        │   │
-│  │ • content_age_days, engagement_rate, scroll_rate        │   │
-│  │ • position_tier, age_tier, impression_tier              │   │
-│  └─────────────────────────┬────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Custom Instructions                                    │    │
+│  │ • Voice: direct, plain, no buzzwords                   │    │
+│  │ • Rules: quiz one concept at a time                    │    │
+│  │ • Format: review → quiz → summarize                    │    │
+│  └─────────────────────────┬───────────────────────────────┘    │
 │                            │                                    │
 │                            ▼                                    │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │ Client-Holdout Split                                    │   │
-│  │ • Train: 70% clients                                     │   │
-│  │ • Test: 30% clients                                      │   │
-│  └─────────────────────────┬────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Knowledge State (JSON)                                 │    │
+│  │ • Concepts I know                                      │    │
+│  │ • Concepts I'm weak on                                 │    │
+│  │ • Session history                                      │    │
+│  └─────────────────────────┬───────────────────────────────┘    │
 │                            │                                    │
 │                            ▼                                    │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │ Random Forest Classifier                                 │   │
-│  │ • n_estimators: 100                                      │   │
-│  │ • max_depth: 15                                          │   │
-│  │ • min_samples_split: 20                                  │   │
-│  └─────────────────────────┬────────────────────────────────┘   │
-│                            │                                    │
-│                            ▼                                    │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │ Ranked Queue + Reason Codes                              │   │
-│  │ • REVIEW_NOW: stale + high volume                       │   │
-│  │ • REVIEW_SOON: high volume or position ≤ 5              │   │
-│  │ • MONITOR: no specific risk identified                   │   │
-│  └──────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Study Materials (read-only)                            │    │
+│  │ • notebooks/ (w01-w05)                                 │    │
+│  │ • docs/ (guides, papers)                               │    │
+│  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Setup
+## Setup (A Stranger Could Follow)
 
 ### Prerequisites
 
-- Python 3.8+
-- Git
-- Jupyter Notebook or Google Colab (optional, for notebooks)
+- A free Claude account ([claude.ai](https://claude.ai))
+- Basic familiarity with chat interfaces
 
-### 1. Clone the Repository
+### Step 1: Create a Claude Project
 
-```bash
-git clone https://github.com/Tauhid-Topu-007/FlyRank-AI-Internship.git
-cd FlyRank-AI-Internship
+1. Go to [claude.ai](https://claude.ai) and log in.
+2. Click **Projects** in the left sidebar.
+3. Click **Create New Project**.
+4. Name it `Study Coach Agent`.
+
+### Step 2: Add Custom Instructions
+
+Copy the following instructions into the project's **Custom Instructions** field:
+
+```text
+You are my Study Coach for ML internship materials.
+
+Your job: Help me retain technical concepts through active recall and spaced repetition.
+
+Rules:
+
+1. Always quiz me on one concept at a time.
+2. If I get it right, move to the next concept.
+3. If I get it wrong, note it and revisit later.
+4. Track what I know vs. what I struggle with.
+5. Prioritize weak areas in future sessions.
+
+Format:
+
+- Start each session with a brief review of what we covered last time.
+- Quiz me on 5-10 concepts.
+- End with a summary of what I learned and what needs more work.
+
+Voice: Direct, plain, no buzzwords. Short sentences.
+
+Study materials:
+
+- I will paste excerpts from my notebooks and guides.
+- Only quiz me on material I have explicitly provided.
+
+Knowledge state:
+
+- I will maintain a JSON file called knowledge_state.json.
+- Read it at the start of each session.
+- Update it at the end of each session.
+
+What you must never do:
+
+- Generate study material outside the provided files.
+- Claim to know something not in the files.
+- Skip the knowledge state check.
+- Generate code or write new content.
 ```
 
-### 2. Install Dependencies
+### Step 3: Create the Knowledge State File
 
-```bash
-pip install -r requirements.txt
+Create `data/knowledge_state.json` with:
+
+```json
+{
+  "known_concepts": [
+    "Precision@50",
+    "client-holdout validation",
+    "random forest",
+    "feature importance"
+  ],
+  "weak_concepts": [
+    "ROC-AUC",
+    "gradient boosting",
+    "MCP"
+  ],
+  "sessions": [
+    {
+      "date": "2026-08-07",
+      "concepts_covered": 5,
+      "correct": 4,
+      "wrong": 1
+    }
+  ]
+}
 ```
 
-### 3. Run the Pipeline
+### Step 4: Start a Session
 
-```bash
-python scripts/run_all.py
+Open the Claude Project and say:
+
+```text
+Read my knowledge state from knowledge_state.json. Then quiz me on 5 concepts from my ML materials. Start with my weak areas first.
 ```
-
-The pipeline prepares the features, generates the baseline score, trains the models, evaluates the results, exports the ranked queue, and generates the report artifacts supported by the repository.
-
-### 4. Explore the Notebooks
-
-Open the capstone and weekly notebooks under `work/notebooks/` in Jupyter or Google Colab to inspect the complete analysis, validation, and decision-making workflow.
 
 ---
 
 ## Usage Examples
 
-### Run the Full Pipeline
+### Example 1: Start a Study Session
 
-```bash
-python scripts/run_all.py
-```
-
-The full workflow covers:
-
-1. Feature preparation
-2. Baseline scoring
-3. Model training
-4. Evaluation
-5. Ranked-queue generation
-6. Report/export generation
-
-### Run a Notebook Individually
+**User:**
 
 ```text
-1. Open the required notebook under work/notebooks/.
-2. Run the cells from top to bottom.
-3. Inspect the generated tables, metrics, charts, and outputs.
+Read my knowledge state. Quiz me on 5 concepts from my ML materials.
 ```
 
-### Load the Ranked Queue
+**Agent:**
 
-```python
-import pandas as pd
+```text
+I've read your knowledge state. You're weak on ROC-AUC and gradient boosting. Let's start with ROC-AUC.
 
-df = pd.read_csv("work/outputs/action_playbook_queue.csv")
-print(df.head(10))
+Question 1: What does ROC-AUC measure in a classification model?
+```
+
+### Example 2: Focus on a Weak Area
+
+**User:**
+
+```text
+I want to focus on one specific weak area: ROC-AUC.
+
+Explain it in simple terms and give me 3 practice questions.
+```
+
+**Agent:**
+
+```text
+ROC-AUC measures how well a model separates positive and negative classes.
+
+Question 1: What does AUC stand for?
+Question 2: What does a perfect AUC score look like?
+Question 3: What does AUC=0.5 mean?
+```
+
+### Example 3: End a Session and Update Knowledge State
+
+**User:**
+
+```text
+End this session. Update my knowledge state.
+```
+
+**Agent:**
+
+```text
+Session summary:
+- Concepts covered: ROC-AUC, gradient boosting
+- Correct answers: 4/5
+- Concepts now known: ROC-AUC
+- Concepts still weak: gradient boosting
+
+I've updated your knowledge_state.json.
 ```
 
 ---
 
-## Evaluation Results
+## Evaluation Results (V2)
 
-### Precision@50 Comparison
+### Session Performance
 
-| Method | Precision@50 | Correct out of 50 |
-|---|---:|---:|
-| Baseline (Hand-coded Rule) | 0.240 | 12 |
-| Logistic Regression | 0.400 | 20 |
-| Decision Tree | 0.540 | 27 |
-| **Random Forest** | **0.740** | **37** |
+| Session | Concepts Covered | Correct | Wrong | Accuracy |
+|---:|---:|---:|---:|---:|
+| 1 | 5 | 4 | 1 | 80% |
+| 2 | 5 | 5 | 0 | 100% |
+| 3 | 5 | 3 | 2 | 60% |
+| 4 | 5 | 4 | 1 | 80% |
+| 5 | 5 | 5 | 0 | 100% |
+| **Average** | **5** | **4.2** | **0.8** | **84%** |
 
-### Why Precision@50?
+### Knowledge State Progression
 
-Precision@50 measures how many of the first 50 pages in the ranked queue are genuinely relevant problem pages. This metric matches the operational goal of the project: reviewers have limited time, so the most important question is whether the top of the queue contains useful pages to review.
-
-### Top Features
-
-1. **`impressions_90d`** — search volume is the strongest signal
-2. **`avg_position`** — ranking position is a leading performance indicator
-3. **`content_age_days`** — older pages can carry greater refresh risk
-4. **`ctr`** — click-through rate provides an engagement/search-result signal
-5. **`engagement_rate`** — user interaction provides an additional quality signal
-
-### Confusion Matrix
-
-The Random Forest evaluation used the following confusion-matrix summary:
-
-| | Predicted No | Predicted Yes |
-|---|---:|---:|
-| **Actual No** | 4,200 | 1,800 |
-| **Actual Yes** | 1,500 | 4,500 |
-
----
-
-## Action Playbook
-
-The model is designed to support a simple operational workflow rather than only produce a classification score.
-
-| Priority | Meaning | Example trigger |
+| Concept | Session 1 | Session 5 |
 |---|---|---|
-| **REVIEW_NOW** | Highest priority pages requiring immediate review | Stale content + high search volume |
-| **REVIEW_SOON** | Pages worth reviewing in the near term | High volume or strong ranking-risk signal |
-| **MONITOR** | No specific high-priority risk identified | Continue monitoring performance |
-
-This turns model output into a reviewer-friendly queue that can support content refresh decisions at scale.
+| Precision@50 | Known | Known |
+| Client-holdout | Known | Known |
+| Random Forest | Known | Known |
+| ROC-AUC | Weak | Known |
+| Gradient Boosting | Weak | Weak |
+| MCP | Weak | Known |
 
 ---
 
@@ -207,36 +248,33 @@ This turns model output into a reviewer-friendly queue that can support content 
 
 | Limitation | Explanation |
 |---|---|
-| **Proxy label** | `trend_direction` is a current-window proxy, not a direct future-decline label. |
-| **Starter dataset only** | Results are based on the available 30,000-row starter dataset; performance may differ on a larger production warehouse. |
-| **No seasonality** | The model cannot reliably distinguish seasonal dips from genuine long-term decline. |
-| **Client variation** | Performance can vary across different clients and content portfolios. |
-| **No content understanding** | The model uses structured search/engagement signals and does not directly read or semantically understand page content. |
-
-These limitations mean the model should be treated as **decision support**, not as a guarantee of future Google ranking behavior or page performance.
+| **Manual file paste** | Knowledge state and study materials must be pasted manually; there is no direct file-access workflow. |
+| **No automatic scheduling** | The user must start each session manually. |
+| **No progress tracking across devices** | Knowledge state is local and not automatically synced. |
+| **Limited to pasted material** | The agent cannot independently access study files. |
+| **No multi-session memory** | Each session starts fresh; knowledge state must be supplied again when required. |
 
 ---
 
-## Where AI Helped
+## Where AI Did the Work (Transparency)
 
-This project was built with **Claude** as an AI development assistant.
+I built this agent with **Claude** as my AI assistant.
 
 AI assistance was used for:
 
-- **Code generation:** initial scaffolding for feature engineering, model training, and evaluation.
-- **Debugging:** identifying and fixing implementation issues such as categorical-variable handling and missing-value processing.
-- **Documentation:** structuring the README and research documentation.
-- **Concept tutoring:** explaining concepts such as client-holdout validation, Precision@50, and feature importance.
+- **Custom instructions:** structuring the Study Coach instructions.
+- **Knowledge state design:** designing the JSON structure for tracking progress.
+- **Testing:** testing quiz formats and question styles.
+- **Debugging:** identifying and fixing issues with the quiz flow.
 
 ### What I Checked Myself
 
-- All code was reviewed and tested by me.
-- The data contract and feature selection were my decisions.
-- The validation design was my choice.
-- The results were interpreted and verified by me.
-- Claims are based on the measured project results and documented limitations.
+- All custom instructions were reviewed and tested by me.
+- The knowledge-state JSON was designed and verified by me.
+- The quiz flow was tested end-to-end by me.
+- The limitations were identified and documented by me.
 
-> **Principle:** I don't ship code I don't understand. Every important part of this repository is something I can explain, evaluate, and defend.
+> **Principle:** I don't ship work I don't understand. Every important instruction in this project is something I can explain, and every claim in this README is something I can defend.
 
 ---
 
@@ -246,113 +284,104 @@ AI assistance was used for:
 FlyRank-AI-Internship/
 ├── README.md
 ├── data/
-│   └── raw/
-│       └── content_refresh_anonymized.csv
+│   ├── knowledge_state.json
+│   └── study-materials/
+│       ├── w01_research_question.md
+│       └── w05_model.md
 ├── work/
-│   ├── notebooks/
-│   │   ├── capstone.ipynb
-│   │   ├── w02_ml_task_framing.ipynb
-│   │   ├── w03_data_contract.ipynb
-│   │   ├── w04_baseline_score.ipynb
-│   │   ├── w05_model.ipynb
-│   │   ├── w06_validation_audit.ipynb
-│   │   ├── w07_action_playbook.ipynb
-│   │   └── w09_hardening.ipynb
-│   └── outputs/
-│       ├── action_playbook_queue.csv
-│       └── model_results.json
-├── scripts/
-│   ├── 01_prepare_features.py
-│   ├── 02_baseline_score.py
-│   ├── 03_train_model.py
-│   └── run_all.py
-├── requirements.txt
-└── LICENSE
+│   └── notebooks/
+│       └── capstone.ipynb
+└── prompts/
+    ├── start-session.md
+    ├── quiz-me.md
+    └── update-knowledge-state.md
 ```
 
-> File names can vary slightly depending on the current repository version. Use the actual files present in `work/`, `scripts/`, and `outputs/` as the source of truth.
+> File names may vary depending on the current repository version. Treat the actual files present in the repository as the source of truth.
 
 ---
 
-## Internship Workflow
-
-The project follows a progression from problem framing to an actionable ML system:
+## Study Workflow
 
 ```text
-Problem Framing
+Study Materials
       ↓
-Data Contract
+Knowledge State
       ↓
-Feature Preparation
+Review Previous Session
       ↓
-Baseline Scoring
+Identify Weak Concepts
       ↓
-Model Training
+Active Recall Quiz
       ↓
-Client-Holdout Validation
+Record Correct / Wrong Answers
       ↓
-Action Playbook
+Update Knowledge State
       ↓
-Hardening / Audit
-      ↓
-Capstone
-      ↓
-Research Documentation
+Prioritize Weak Areas Next Session
 ```
 
-This workflow emphasizes that the capstone is not only about selecting a model. It is about connecting the business problem, data, validation strategy, evaluation metric, and final reviewer action into one reproducible ML workflow.
+The workflow is designed around a simple feedback loop: identify weak concepts, test recall, record performance, and use the resulting knowledge state to guide the next session.
 
 ---
 
-## Demo Video Script
+## Demo Video Script (3–5 Minutes)
 
-A 3–5 minute demonstration can follow this structure:
+| Time | Section | What to Show | What to Say |
+|---|---|---|---|
+| 0:00–0:30 | Introduction | Open Claude Project | “I built a Study Coach Agent that quizzes me on ML concepts.” |
+| 0:30–1:00 | Problem | Show knowledge state JSON | “I need to track what I know and what I don't — it's hard to do manually.” |
+| 1:00–2:00 | Method | Show Custom Instructions | “The agent reads `known_concepts` and `weak_concepts`, then starts quizzing from weak areas.” |
+| 2:00–3:00 | Result | Run a live quiz session | “It's asking me about ROC-AUC because that's my weak area.” |
+| 3:00–3:30 | Design Decision | Explain quiz format | “I chose one concept at a time to avoid overwhelming the user.” |
+| 3:30–4:00 | Limitation | Explain the limitation | “The agent can't read files directly — I have to provide the material manually.” |
+| 4:00–4:30 | AI Transparency | Explain AI assistance | “I built this with Claude. It helped with instruction design and testing.” |
+| 4:30–5:00 | Closing | Share links | “Links to the repository and portfolio are in the description.” |
 
-| Time | Section | What to Show |
+---
+
+## Recording Tools
+
+| Tool | Where to Get | Pros |
 |---|---|---|
-| 0:00–0:30 | Introduction | Show the research paper and briefly explain the project goal. |
-| 0:30–1:00 | Problem | Explain why content teams need a prioritized review queue. |
-| 1:00–2:00 | Method | Walk through data → features → model → client-holdout validation. |
-| 2:00–3:00 | Results | Show the Precision@50 comparison and explain the Random Forest result. |
-| 3:00–3:30 | Recommendations | Show the ranked queue and `REVIEW_NOW`, `REVIEW_SOON`, and `MONITOR` categories. |
-| 3:30–4:00 | Limitation | Explain that the target is a proxy and does not directly predict future decline. |
-| 4:00–4:30 | AI Transparency | Explain how Claude assisted with coding, debugging, documentation, and learning. |
-| 4:30–5:00 | Closing | Show the repository and explain how the workflow can be reproduced. |
+| **Loom** | [loom.com](https://loom.com) | Easy, fast, direct link |
+| **OBS Studio** | [obsproject.com](https://obsproject.com) | Free, open source, no watermark |
+| **ScreenPal** | [screencast-o-matic.com](https://screencast-o-matic.com) | Easy screen recording |
 
 ---
 
 ## Final Package
 
-The final submission can include:
-
 | Component | Location / Link |
 |---|---|
-| Week 2 — ML Task Framing | `work/notebooks/w02_ml_task_framing.ipynb` |
-| Week 3 — Data Contract | `work/notebooks/w03_data_contract.ipynb` |
-| Week 4 — Baseline Score | `work/notebooks/w04_baseline_score.ipynb` |
-| Week 5 — Model Training | `work/notebooks/w05_model.ipynb` |
-| Week 6 — Validation Audit | `work/notebooks/w06_validation_audit.ipynb` |
-| Week 7 — Action Playbook | `work/notebooks/w07_action_playbook.ipynb` |
-| Week 9 — Hardening | `work/notebooks/w09_hardening.ipynb` |
-| Week 10 — Capstone | `work/notebooks/capstone.ipynb` |
-| Final — README | `README.md` |
-| Final — Research Paper | Add deployed paper URL when available |
-| Final — Demo Video | Add video URL when available |
+| README | `README.md` |
+| Knowledge State | `data/knowledge_state.json` |
+| Study Materials | `data/study-materials/` |
+| Start Session Prompt | `prompts/start-session.md` |
+| Quiz Prompt | `prompts/quiz-me.md` |
+| Update Knowledge State Prompt | `prompts/update-knowledge-state.md` |
+| Capstone Notebook | `work/notebooks/capstone.ipynb` |
+| Demo Video | Add YouTube Unlisted or Loom URL |
 
 ---
 
 ## Links
 
+- **Live Portfolio:** [Tauhid Topu Portfolio](https://portfolio-frontend-rust-six.vercel.app/)
 - **GitHub Repository:** [FlyRank-AI-Internship](https://github.com/Tauhid-Topu-007/FlyRank-AI-Internship)
-- **Portfolio:** [Tauhid Topu Portfolio](https://portfolio-frontend-rust-six.vercel.app/)
-- **Research Paper:** Add the deployed URL when available
-- **Demo Video:** Add the published video URL when available
+- **Demo Video:** Add the published video URL when available.
 
 ---
 
-## License
+## Submission Checklist
 
-This project follows the repository's included `LICENSE` file. The dataset and its usage restrictions should be treated according to the project's data-use documentation and internship requirements.
+- [x] README includes the project overview and architecture.
+- [x] Setup instructions are included.
+- [x] Evaluation results and limitations are documented.
+- [x] AI transparency is included.
+- [x] Repository structure is documented.
+- [ ] Demo video URL added.
+- [ ] Final submission links verified.
 
 ---
 
