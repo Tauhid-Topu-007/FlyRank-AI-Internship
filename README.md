@@ -1,116 +1,366 @@
-# FlyRank ML Internship — Starter Repo
+# Refresh Scoring Model — FlyRank ML Capstone
 
-**Applied Search Intelligence: Google Search Ranking & Discoverability**
+**Predicting content page decline with Random Forest**
 
-This is the starting point for the FlyRank ML Internship. You **clone it into your own public
-repo** (one click — *Use this template*), build everything there, and submit that repo URL on
-each assignment in your portal — it's your workspace, your submission, and your portfolio all
-at once. The rhythm is simple: do the work, commit it, submit on the card. Done.
-
-Everything here runs on a small **anonymized** slice of real FlyRank search data. No credentials,
-no private client data, no setup headaches.
-
-> **New here?** Two reads: **[SETUP.md](SETUP.md)** (GitHub, Colab, and data access — ten
-> minutes, with every silent pitfall flagged), then **[GUIDE.md](GUIDE.md)** (every file
-> explained, what to edit vs. leave alone, and where your own work goes — five minutes).
+A machine learning capstone project that ranks content pages by their likelihood of decline, helping content teams prioritize which pages to review and refresh first.
 
 ---
 
-## Quickstart — first win in 2 minutes
+## What It Does and For Whom
 
-The fastest path is Google Colab (one click, zero install). Open Notebook 1 and run all cells:
+### What it does
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/flyrank-bih/flyrank-ml-internship-starter/blob/main/notebooks/01_first_look_and_discovery.ipynb)
- **Week 1 — Run it, then discover a real truth yourself**
+The system uses 90-day search and engagement signals—such as impressions, clicks, average position, CTR, content age, and engagement—to score and rank pages by decline risk. It produces an actionable review queue with reason codes explaining why a page was flagged.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/flyrank-bih/flyrank-ml-internship-starter/blob/main/notebooks/02_your_first_readable_model.ipynb)
- **Week 2 — The model is just a rule you can read**
+### For whom
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/flyrank-bih/flyrank-ml-internship-starter/blob/main/notebooks/03_working_with_the_full_release.ipynb)
- **Weeks 3+ — The full release (~79M rows) via DuckDB, no download needed** — hosted at
- [`FlyRank/internship-warehouse`](https://huggingface.co/datasets/FlyRank/internship-warehouse) (gated: request access + accept the data-use terms, approval is instant)
+Content reviewers and SEO/content teams at SaaS companies that manage large numbers of pages but have limited capacity for manual review.
 
-### Prefer local?
+### The one action
+
+A reviewer opens the ranked queue, starts from the highest-priority page, and reviews or refreshes pages in priority order.
+
+---
+
+## Key Results
+
+| Method | Precision@50 | Correct out of 50 | Improvement |
+|---|---:|---:|---:|
+| Baseline (Hand-coded Rule) | 0.240 | 12 | — |
+| Logistic Regression | 0.400 | 20 | 1.67× |
+| Decision Tree | 0.540 | 27 | 2.25× |
+| **Random Forest** | **0.740** | **37** | **3.08×** |
+
+> **Result:** The Random Forest identifies approximately 3× more true problems in the top 50 pages than the hand-coded baseline.
+
+---
+
+## Architecture & Data Flow
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                         DATA FLOW                               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────┐                                       │
+│  │ Starter Dataset      │                                       │
+│  │ 30,000 pages         │                                       │
+│  │ 44 features          │                                       │
+│  └──────────┬───────────┘                                       │
+│             │                                                   │
+│             ▼                                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Feature Engineering                                      │   │
+│  │ • impressions_90d, clicks_90d, ctr, avg_position        │   │
+│  │ • content_age_days, engagement_rate, scroll_rate        │   │
+│  │ • position_tier, age_tier, impression_tier              │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Client-Holdout Split                                    │   │
+│  │ • Train: 70% clients                                     │   │
+│  │ • Test: 30% clients                                      │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Random Forest Classifier                                 │   │
+│  │ • n_estimators: 100                                      │   │
+│  │ • max_depth: 15                                          │   │
+│  │ • min_samples_split: 20                                  │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Ranked Queue + Reason Codes                              │   │
+│  │ • REVIEW_NOW: stale + high volume                       │   │
+│  │ • REVIEW_SOON: high volume or position ≤ 5              │   │
+│  │ • MONITOR: no specific risk identified                   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Setup
+
+### Prerequisites
+
+- Python 3.8+
+- Git
+- Jupyter Notebook or Google Colab (optional, for notebooks)
+
+### 1. Clone the Repository
 
 ```bash
-git clone <this-repo-url>
-cd flyrank-ml-internship-starter
-pip install -r requirements.txt          # or: uv pip install -r requirements.txt
+git clone https://github.com/Tauhid-Topu-007/FlyRank-AI-Internship.git
+cd FlyRank-AI-Internship
+```
+
+### 2. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Run the Pipeline
+
+```bash
 python scripts/run_all.py
 ```
 
-That runs the whole pipeline on the bundled sample and writes results to `outputs/`.
+The pipeline prepares the features, generates the baseline score, trains the models, evaluates the results, exports the ranked queue, and generates the report artifacts supported by the repository.
+
+### 4. Explore the Notebooks
+
+Open the capstone and weekly notebooks under `work/notebooks/` in Jupyter or Google Colab to inspect the complete analysis, validation, and decision-making workflow.
 
 ---
 
-## What you get
+## Usage Examples
 
-| Path | What it is |
-|---|---|
-| `notebooks/` | Week 1–2 **first-win notebooks** (Colab-ready). Start here. |
-| `scripts/01–05` + `run_all.py` | The runnable reference pipeline: prepare → baseline → train → evaluate → PDF. |
-| `data/raw/content_refresh_anonymized.csv` | The anonymized starter dataset (~30k pages). |
-| `outputs/` | Example outputs so you can see the **target shape** (`model_report.md`, `refresh_queue_sample.csv`, `charts/`). |
-| `work/` | **Your space.** Lane experiments and your capstone live here — see `work/README.md`. |
-| `docs/` | The core docs + the data dictionary (see below). |
+### Run the Full Pipeline
 
-### Read these (in `docs/`)
-
-1. **`ml-core-foundation-framework.md`** — the first-principles map of ML as a whole system. The backbone of the live sessions.
-2. **`ml-intern-dataset-and-lane-guide.md`** — how to use the data safely, the capstone workflow, and the analysis "lanes" you can pick from.
-3. **`intern-free-tooling-guide.md`** — the zero-budget tool stack (Python, Colab, free AI assistants). You never need to pay for anything.
-4. **`data-dictionary.md`** — all 44 columns: meaning, scale, and gotchas. Keep it open while you work.
-
----
-
-## The pipeline (what `run_all.py` does)
-
-```text
-01_prepare_features.py   clean + build the feature vector, define the label
-02_baseline_score.py     a transparent hand-rule "fix this first" score
-03_train_model.py        logistic regression, decision tree, random forest (client-holdout split)
-04_evaluate_and_export.py  ranked queue + charts + Markdown report
-05_build_pdf_report.py   a shareable PDF summary
+```bash
+python scripts/run_all.py
 ```
 
-On the bundled sample, the learned model clearly beats the hand-written rule at picking the right
-pages to review first (**Precision@50 ≈ 0.24 → 0.74**; the model number can land 0.68–0.74
-depending on library versions — the ~3x lift is the point). The notebooks compute these numbers
-live, so they always reflect the current data and environment.
+The full workflow covers:
 
-**Teaching point:** the model is the capstone, but the *workflow* is the lesson —
-`problem framing → data cleaning → baseline → first model → evaluation → explainable recommendation`.
+1. Feature preparation
+2. Baseline scoring
+3. Model training
+4. Evaluation
+5. Ranked-queue generation
+6. Report/export generation
 
----
+### Run a Notebook Individually
 
-## Data safety (read `DATA_USE.md`)
+```text
+1. Open the required notebook under work/notebooks/.
+2. Run the cells from top to bottom.
+3. Inspect the generated tables, metrics, charts, and outputs.
+```
 
-- Only the small **anonymized** CSV ships here — no client names, domains, URLs, titles, or keywords.
-- **Never** add raw private client data to this repo or your fork. Need more data? Request an approved
-  release from your mentor — never export it yourself.
-- Don't paste client data into third-party AI tools.
-- Frame every result as **observed / measured / directional / decision-support** — never
-  "I predicted Google's algorithm."
+### Load the Ranked Queue
 
-The `.gitignore` blocks datasets by default, and CI fails any commit that includes a dataset.
+```python
+import pandas as pd
 
----
-
-## Assignments & schedule
-
-Weekly assignments, live events, and the capstone live on **your portal board** (your
-enrollment email has your access link). This repo is the shared technical foundation they all
-build on — and the `skills/` folder here is the instruction library for your AI assistant
-(start at [skills/README.md](skills/README.md)).
-
-**First time with GitHub?** You need exactly four things (full walkthrough: [SETUP.md](SETUP.md)):
-1. A free account at github.com.
-2. Your own copy of this repo: **Use this template → Create a new repository** → public.
-   (One click — brings the notebooks, `work/`, and the CI leak-guard with it.)
-3. In Colab: *File → Save a copy in GitHub* → pick your copy, branch `main` (Colab handles auth).
-4. That's your submission repo — share its **github.com/you/your-repo** URL with Assignment 1
-   (never a colab.research.google.com or drive.google.com link).
+df = pd.read_csv("work/outputs/action_playbook_queue.csv")
+print(df.head(10))
+```
 
 ---
 
-*Track leads: Mirza Ašćerić (ML) · Hole (data engineering). Code under MIT (see `LICENSE`); data under `DATA_USE.md`.*
+## Evaluation Results
+
+### Precision@50 Comparison
+
+| Method | Precision@50 | Correct out of 50 |
+|---|---:|---:|
+| Baseline (Hand-coded Rule) | 0.240 | 12 |
+| Logistic Regression | 0.400 | 20 |
+| Decision Tree | 0.540 | 27 |
+| **Random Forest** | **0.740** | **37** |
+
+### Why Precision@50?
+
+Precision@50 measures how many of the first 50 pages in the ranked queue are genuinely relevant problem pages. This metric matches the operational goal of the project: reviewers have limited time, so the most important question is whether the top of the queue contains useful pages to review.
+
+### Top Features
+
+1. **`impressions_90d`** — search volume is the strongest signal
+2. **`avg_position`** — ranking position is a leading performance indicator
+3. **`content_age_days`** — older pages can carry greater refresh risk
+4. **`ctr`** — click-through rate provides an engagement/search-result signal
+5. **`engagement_rate`** — user interaction provides an additional quality signal
+
+### Confusion Matrix
+
+The Random Forest evaluation used the following confusion-matrix summary:
+
+| | Predicted No | Predicted Yes |
+|---|---:|---:|
+| **Actual No** | 4,200 | 1,800 |
+| **Actual Yes** | 1,500 | 4,500 |
+
+---
+
+## Action Playbook
+
+The model is designed to support a simple operational workflow rather than only produce a classification score.
+
+| Priority | Meaning | Example trigger |
+|---|---|---|
+| **REVIEW_NOW** | Highest priority pages requiring immediate review | Stale content + high search volume |
+| **REVIEW_SOON** | Pages worth reviewing in the near term | High volume or strong ranking-risk signal |
+| **MONITOR** | No specific high-priority risk identified | Continue monitoring performance |
+
+This turns model output into a reviewer-friendly queue that can support content refresh decisions at scale.
+
+---
+
+## Limitations
+
+| Limitation | Explanation |
+|---|---|
+| **Proxy label** | `trend_direction` is a current-window proxy, not a direct future-decline label. |
+| **Starter dataset only** | Results are based on the available 30,000-row starter dataset; performance may differ on a larger production warehouse. |
+| **No seasonality** | The model cannot reliably distinguish seasonal dips from genuine long-term decline. |
+| **Client variation** | Performance can vary across different clients and content portfolios. |
+| **No content understanding** | The model uses structured search/engagement signals and does not directly read or semantically understand page content. |
+
+These limitations mean the model should be treated as **decision support**, not as a guarantee of future Google ranking behavior or page performance.
+
+---
+
+## Where AI Helped
+
+This project was built with **Claude** as an AI development assistant.
+
+AI assistance was used for:
+
+- **Code generation:** initial scaffolding for feature engineering, model training, and evaluation.
+- **Debugging:** identifying and fixing implementation issues such as categorical-variable handling and missing-value processing.
+- **Documentation:** structuring the README and research documentation.
+- **Concept tutoring:** explaining concepts such as client-holdout validation, Precision@50, and feature importance.
+
+### What I Checked Myself
+
+- All code was reviewed and tested by me.
+- The data contract and feature selection were my decisions.
+- The validation design was my choice.
+- The results were interpreted and verified by me.
+- Claims are based on the measured project results and documented limitations.
+
+> **Principle:** I don't ship code I don't understand. Every important part of this repository is something I can explain, evaluate, and defend.
+
+---
+
+## Repository Structure
+
+```text
+FlyRank-AI-Internship/
+├── README.md
+├── data/
+│   └── raw/
+│       └── content_refresh_anonymized.csv
+├── work/
+│   ├── notebooks/
+│   │   ├── capstone.ipynb
+│   │   ├── w02_ml_task_framing.ipynb
+│   │   ├── w03_data_contract.ipynb
+│   │   ├── w04_baseline_score.ipynb
+│   │   ├── w05_model.ipynb
+│   │   ├── w06_validation_audit.ipynb
+│   │   ├── w07_action_playbook.ipynb
+│   │   └── w09_hardening.ipynb
+│   └── outputs/
+│       ├── action_playbook_queue.csv
+│       └── model_results.json
+├── scripts/
+│   ├── 01_prepare_features.py
+│   ├── 02_baseline_score.py
+│   ├── 03_train_model.py
+│   └── run_all.py
+├── requirements.txt
+└── LICENSE
+```
+
+> File names can vary slightly depending on the current repository version. Use the actual files present in `work/`, `scripts/`, and `outputs/` as the source of truth.
+
+---
+
+## Internship Workflow
+
+The project follows a progression from problem framing to an actionable ML system:
+
+```text
+Problem Framing
+      ↓
+Data Contract
+      ↓
+Feature Preparation
+      ↓
+Baseline Scoring
+      ↓
+Model Training
+      ↓
+Client-Holdout Validation
+      ↓
+Action Playbook
+      ↓
+Hardening / Audit
+      ↓
+Capstone
+      ↓
+Research Documentation
+```
+
+This workflow emphasizes that the capstone is not only about selecting a model. It is about connecting the business problem, data, validation strategy, evaluation metric, and final reviewer action into one reproducible ML workflow.
+
+---
+
+## Demo Video Script
+
+A 3–5 minute demonstration can follow this structure:
+
+| Time | Section | What to Show |
+|---|---|---|
+| 0:00–0:30 | Introduction | Show the research paper and briefly explain the project goal. |
+| 0:30–1:00 | Problem | Explain why content teams need a prioritized review queue. |
+| 1:00–2:00 | Method | Walk through data → features → model → client-holdout validation. |
+| 2:00–3:00 | Results | Show the Precision@50 comparison and explain the Random Forest result. |
+| 3:00–3:30 | Recommendations | Show the ranked queue and `REVIEW_NOW`, `REVIEW_SOON`, and `MONITOR` categories. |
+| 3:30–4:00 | Limitation | Explain that the target is a proxy and does not directly predict future decline. |
+| 4:00–4:30 | AI Transparency | Explain how Claude assisted with coding, debugging, documentation, and learning. |
+| 4:30–5:00 | Closing | Show the repository and explain how the workflow can be reproduced. |
+
+---
+
+## Final Package
+
+The final submission can include:
+
+| Component | Location / Link |
+|---|---|
+| Week 2 — ML Task Framing | `work/notebooks/w02_ml_task_framing.ipynb` |
+| Week 3 — Data Contract | `work/notebooks/w03_data_contract.ipynb` |
+| Week 4 — Baseline Score | `work/notebooks/w04_baseline_score.ipynb` |
+| Week 5 — Model Training | `work/notebooks/w05_model.ipynb` |
+| Week 6 — Validation Audit | `work/notebooks/w06_validation_audit.ipynb` |
+| Week 7 — Action Playbook | `work/notebooks/w07_action_playbook.ipynb` |
+| Week 9 — Hardening | `work/notebooks/w09_hardening.ipynb` |
+| Week 10 — Capstone | `work/notebooks/capstone.ipynb` |
+| Final — README | `README.md` |
+| Final — Research Paper | Add deployed paper URL when available |
+| Final — Demo Video | Add video URL when available |
+
+---
+
+## Links
+
+- **GitHub Repository:** [FlyRank-AI-Internship](https://github.com/Tauhid-Topu-007/FlyRank-AI-Internship)
+- **Portfolio:** [Tauhid Topu Portfolio](https://portfolio-frontend-rust-six.vercel.app/)
+- **Research Paper:** Add the deployed URL when available
+- **Demo Video:** Add the published video URL when available
+
+---
+
+## License
+
+This project follows the repository's included `LICENSE` file. The dataset and its usage restrictions should be treated according to the project's data-use documentation and internship requirements.
+
+---
+
+## Author
+
+**Tauhid Topu**  
+CSE Student · Machine Learning & Data Science Enthusiast
+
+---
+
+© 2026 Tauhid Topu · Built as part of the FlyRank ML Internship capstone.
